@@ -1,8 +1,8 @@
 # TPI- OE: Sistemas de turnos
 # Alumnos: Brisa Chirino y Gerardo Ocampo
-# Módulo: Interfaz de usuario y flujo BPMN
+# Módulo: Interfaz de usuario, Flujo BPMN + Máquina de Estados
 
-from turnos import turno_disponible, registrar_turno
+from turnos import turno_disponible, registrar_turno, EstadoTurno
 from datetime import datetime
 
 # Configuración
@@ -40,7 +40,7 @@ def obtener_nombre():
         nombre = input("\n📝 Ingrese su nombre: ")
         nombre_validado = validar_nombre(nombre)
         if nombre_validado:
-            return nombre_validado
+            return nombre_validado, EstadoTurno.VALIDANDO_NOMBRE
         print("  Intente nuevamente.")
 
 def obtener_fecha():
@@ -49,47 +49,72 @@ def obtener_fecha():
         fecha = input("📅 Ingrese la fecha del turno (DD/MM/YYYY): ")
         fecha_validada = validar_fecha(fecha)
         if fecha_validada:
-            return fecha_validada
+            return fecha_validada, EstadoTurno.VALIDANDO_FECHA
         print("  Intente nuevamente.")
+
+def mostrar_transicion(estado_anterior, estado_nuevo):
+    """Muestra la transición entre estados (opcional, para debugging)"""
+    pass  # Descomentar si quieres ver las transiciones en consola
+    # print(f"  [Estado: {estado_anterior.value} → {estado_nuevo.value}]")
 
 def flujo_bpmn():
     """
-    FLUJO BPMN - Proceso de Solicitud de Turno
+    FLUJO BPMN CON MÁQUINA DE ESTADOS
     
-    Inicio → Obtener Datos → Compuerta 1 (¿Disponible?) → 
-      - SÍ: Registrar → Fin exitoso
-      - NO: Compuerta 2 (¿Reintentar?) →
-        - SÍ: Volver a intentar (max 3)
-        - NO: Fin cancelado
+    Diagrama:
+    INICIO → VALIDANDO_NOMBRE → VALIDANDO_FECHA → VERIFICANDO_DISPONIBILIDAD
+             (Compuerta 1: ¿Disponible?)
+             ├─ SÍ → REGISTRADO → FIN ✓
+             └─ NO → ESPERA_REINTENTOS (Compuerta 2: ¿Reintentar?)
+                    ├─ SÍ (< 3) → volver a VALIDANDO_FECHA
+                    └─ NO o MAX → CANCELADO → FIN ✗
     """
     print("\n" + "="*50)
     print("  SISTEMA DE GESTIÓN DE TURNOS")
     print("="*50)
     
-    # ENTRADA: Recopilar datos
-    nombre = obtener_nombre()
+    # Estado inicial
+    estado_actual = EstadoTurno.INICIO
+    
+    # ENTRADA: Recopilar nombre
+    nombre, estado_actual = obtener_nombre()
+    mostrar_transicion(EstadoTurno.INICIO, estado_actual)
+    
     reintentos = 0
     
     while reintentos < MAX_REINTENTOS:
-        fecha = obtener_fecha()
+        # VALIDAR FECHA
+        fecha, estado_actual = obtener_fecha()
+        mostrar_transicion(EstadoTurno.VALIDANDO_NOMBRE, estado_actual)
         
-        # COMPUERTA 1: ¿Hay disponibilidad?
-        if turno_disponible(fecha):
-            # PROCESO: Registrar turno
-            registrar_turno(nombre, fecha)
+        # COMPUERTA 1: ¿Disponibilidad?
+        disponible, estado_compuerta1 = turno_disponible(fecha)
+        mostrar_transicion(estado_actual, estado_compuerta1)
+        
+        if disponible:
+            # SÍ: Registrar turno → REGISTRADO
+            exitoso, estado_registro = registrar_turno(nombre, fecha)
+            mostrar_transicion(estado_compuerta1, estado_registro)
             print("✓ Proceso finalizado exitosamente.\n")
             return True
         
         else:
-            # COMPUERTA 2: ¿Desea reintentar?
+            # NO: Compuerta 2 → ESPERA_REINTENTOS
+            estado_actual = EstadoTurno.ESPERA_REINTENTOS
+            mostrar_transicion(estado_compuerta1, estado_actual)
+            
             reintentos += 1
             if reintentos < MAX_REINTENTOS:
                 print(f"\n⚠ Ha utilizado {reintentos} de {MAX_REINTENTOS} intentos.")
                 respuesta = input("¿Desea intentar con otra fecha? (si/no): ").strip().lower()
                 if respuesta != "si":
+                    estado_actual = EstadoTurno.CANCELADO
                     print("\n✗ Proceso cancelado por el usuario.\n")
                     return False
+                # Volver a VALIDANDO_FECHA
+                estado_actual = EstadoTurno.VALIDANDO_FECHA
             else:
+                estado_actual = EstadoTurno.CANCELADO
                 print(f"\n✗ Máximo de intentos ({MAX_REINTENTOS}) alcanzado.")
                 print("✗ Proceso finalizado sin registrar turno.\n")
                 return False

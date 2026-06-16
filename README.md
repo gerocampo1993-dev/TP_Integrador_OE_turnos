@@ -33,28 +33,86 @@ INICIO → Obtener Datos → COMPUERTA 1: ¿Disponible?
 
 ---
 
-## ⚙️ ¿Máquina de Estados Implementada?
+## ⚙️ Máquina de Estados Implementada ✅
 
-**No completamente.** El programa tiene un **flujo BPMN con compuertas** (decisiones lineales), no una máquina de estados completa.
+**SÍ, está totalmente implementada.** La máquina de estados funciona **junto con el BPMN**, sin romper el flujo:
 
-- **Lo actual**: Flujo procedural con bifurcaciones
-- **Máquina de estados**: Definiría múltiples estados (ej: `ESPERANDO_NOMBRE`, `ESPERANDO_FECHA`, `VERIFICANDO`, `REGISTRADO`, `CANCELADO`)
+### Estados Definidos
 
-### Si quisieras implementar máquina de estados:
 ```python
-from enum import Enum
-
 class EstadoTurno(Enum):
     INICIO = "inicio"
     VALIDANDO_NOMBRE = "validando_nombre"
     VALIDANDO_FECHA = "validando_fecha"
-    VERIFICANDO_DISPONIBILIDAD = "verificando"
+    VERIFICANDO_DISPONIBILIDAD = "verificando_disponibilidad"  # COMPUERTA 1
     REGISTRADO = "registrado"
+    ESPERA_REINTENTOS = "espera_reintentos"  # COMPUERTA 2
     CANCELADO = "cancelado"
     ERROR = "error"
 ```
 
-El código actual funciona bien, pero una máquina de estados sería más escalable si el sistema crece.
+### Diagrama de Transiciones
+
+```
+    ┌─ INICIO
+    │
+    ├─ VALIDANDO_NOMBRE (Entrada: nombre)
+    │
+    ├─ VALIDANDO_FECHA (Entrada: fecha)
+    │
+    ├─ VERIFICANDO_DISPONIBILIDAD (COMPUERTA 1)
+    │  ├─ ¿Disponible? SÍ
+    │  │  └─ REGISTRADO → FIN ✓
+    │  │
+    │  └─ ¿Disponible? NO
+    │     └─ ESPERA_REINTENTOS (COMPUERTA 2)
+    │        ├─ ¿Reintentar SÍ? (< 3)
+    │        │  └─ VALIDANDO_FECHA (loop)
+    │        │
+    │        └─ ¿Reintentar NO? o máx intentos
+    │           └─ CANCELADO → FIN ✗
+    │
+    └─ ERROR (excepción)
+```
+
+### Cómo Funciona
+
+1. **Cada función retorna un tupla**: `(resultado, estado_nuevo)`
+2. **El estado se actualiza constantemente** según el progreso del flujo
+3. **Las transiciones son explícitas**: se registra cada cambio de estado
+4. **BPMN + Máquina de Estados**: complementan, no compiten
+
+### Ejemplo de Transición en Código
+
+```python
+# El programa rastrear el estado
+nombre, estado_actual = obtener_nombre()  # → VALIDANDO_NOMBRE
+mostrar_transicion(EstadoTurno.INICIO, estado_actual)
+
+fecha, estado_actual = obtener_fecha()  # → VALIDANDO_FECHA
+disponible, estado_compuerta1 = turno_disponible(fecha)  # → VERIFICANDO_DISPONIBILIDAD
+
+if disponible:
+    exitoso, estado_registro = registrar_turno(nombre, fecha)  # → REGISTRADO
+else:
+    estado_actual = EstadoTurno.ESPERA_REINTENTOS
+```
+
+### Ventajas de esta Implementación
+
+- ✅ Trazabilidad total del proceso
+- ✅ Fácil de debuguear (se ve en qué estado está)
+- ✅ Escalable: agregar nuevos estados es trivial
+- ✅ Reutilizable: la máquina de estados es independiente del BPMN
+- ✅ Documentación automática: los estados explican el flujo
+
+### Desactivar Transiciones en Consola
+
+La función `mostrar_transicion()` está desactivada por defecto. Para ver cada transición en consola, descomenta esta línea en `main.py`:
+
+```python
+# mostrar_transicion(estado_anterior, estado_nuevo)  # Descomentar para debugging
+```
 
 ---
 
