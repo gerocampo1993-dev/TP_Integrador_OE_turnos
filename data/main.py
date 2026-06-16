@@ -63,9 +63,9 @@ def flujo_bpmn():
     
     Diagrama:
     INICIO → VALIDANDO_NOMBRE → VALIDANDO_FECHA → VERIFICANDO_DISPONIBILIDAD
-             (Compuerta 1: ¿Disponible?)
-             ├─ SÍ → REGISTRADO → FIN ✓
-             └─ NO → ESPERA_REINTENTOS (Compuerta 2: ¿Reintentar?)
+            (Compuerta 1: ¿Disponible?)
+            ├─ SÍ → REGISTRADO → FIN ✓
+            └─ NO → ESPERA_REINTENTOS (Compuerta 2: ¿Reintentar?)
                     ├─ SÍ (< 3) → volver a VALIDANDO_FECHA
                     └─ NO o MAX → CANCELADO → FIN ✗
     """
