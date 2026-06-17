@@ -1,0 +1,18 @@
+# Dependencias del Sistema de Gestión de Turnos
+
+# Core (incluido en Python)
+# - csv: para manejo de CSV
+# - enum: para máquina de estados
+# - dataclasses: para modelos
+# - datetime: para validación de fechas
+# - pathlib: para manejo de directorios
+
+# Opcional - Para integración con Telegram
+# python-telegram-bot==20.0
+
+# Opcional - Para integración con WhatsApp
+# twilio==8.10.0
+
+# Desarrollo
+# pytest==7.4.0  # Para tests
+# pylint==2.17.0  # Para linting

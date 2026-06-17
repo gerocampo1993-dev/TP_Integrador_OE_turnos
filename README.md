@@ -1,35 +1,214 @@
 # TP_Integrador_OE_turnos
 
-Sistema de gestión de turnos con 2 compuertas BPMN implementadas.
+Sistema de gestión de turnos con arquitectura modular, 2 compuertas BPMN y máquina de estados. Escalable a Telegram/WhatsApp.
 
 **Alumnos**: Brisa Chirino y Gerardo Ocampo
 
 ---
 
-## 📋 Arquitectura Modular
+## 📁 Estructura Modular (Arquitectura MVC)
 
-El sistema está organizado en **3 módulos** dentro de `/data`:
+```
+data/
+├── config.py              # Configuración centralizada (constantes)
+├── models.py              # Modelos de datos (EstadoTurno, Turno)
+├── services.py            # Lógica de negocio (TurnoService)
+├── csv_manager.py         # Persistencia (gestión de CSV)
+├── ui.py                  # Interfaz de usuario (MenuPrincipal)
+├── main.py                # Punto de entrada CLI
+├── bot_telegram.py        # Template para bot Telegram (futuro)
+├── turnos.py              # Compatibilidad (legacy)
+└── turnos.csv             # Base de datos (auto-generado)
+```
 
-| Módulo | Función |
-|--------|---------|
-| **csv_manager.py** | Persistencia de datos (lectura/escritura CSV) |
-| **turnos.py** | Lógica de negocio (compuertas y reglas) |
-| **main.py** | Interfaz de usuario y orquestación del flujo |
+### Responsabilidades
+
+| Módulo | Responsabilidad |
+|--------|-----------------|
+| **config.py** | Constantes y configuración centralizada |
+| **models.py** | Clases de datos (dataclasses + Enums) |
+| **services.py** | Lógica de negocio (verificación, registro) |
+| **csv_manager.py** | Persistencia en archivos |
+| **ui.py** | Interfaz con usuario (menú, inputs, outputs) |
+| **main.py** | Orquestación del flujo y punto de entrada |
+| **bot_telegram.py** | Adaptador para Telegram (template) |
 
 ---
 
-## 🔄 Flujo BPMN (2 Compuertas)
+## 🎮 Menú Principal Mejorado
 
 ```
-INICIO → Obtener Datos → COMPUERTA 1: ¿Disponible?
-                         ├─ SÍ → Registrar turno → FIN ✓
-                         └─ NO → COMPUERTA 2: ¿Reintentar?
-                                ├─ SÍ (< 3 intentos) → Volver a intentar
-                                └─ NO o máx intentos → FIN ✗
+==============================================================
+         🎫 SISTEMA DE GESTIÓN DE TURNOS
+      Organización Empresarial - TPI
+==============================================================
+
+  MENÚ PRINCIPAL
+  
+  1️⃣  Solicitar un turno
+  2️⃣  Ver turnos disponibles
+  3️⃣  Ver mis datos
+  4️⃣  Cancelar turno
+  5️⃣  Ayuda
+  6️⃣  Salir
 ```
 
-**Compuerta 1**: Valida disponibilidad (máx 5 turnos/día)  
-**Compuerta 2**: Permite hasta 3 reintentos
+**Características del menú:**
+- ✅ Interfaz chatbot-like intuitiva
+- ✅ Emojis para mejor UX
+- ✅ Validación de opciones
+- ✅ Loop principal robusto
+- ✅ Manejo de excepciones
+
+---
+
+## 🔄 Flujo BPMN + Máquina de Estados
+
+### Diagrama Completo
+
+```
+     INICIO
+        ↓
+ VALIDANDO_NOMBRE (usuario ingresa nombre)
+        ↓
+ VALIDANDO_FECHA (usuario ingresa fecha)
+        ↓
+ VERIFICANDO_DISPONIBILIDAD ← COMPUERTA 1
+        ↙              ↘
+    SÍ (disponible)   NO (lleno)
+      ↓                   ↓
+ REGISTRADO         ESPERA_REINTENTOS ← COMPUERTA 2
+      ↓                   ↙         ↘
+   FIN ✓         SÍ (< 3)      NO o MAX
+                    ↓               ↓
+              (volver a FECHA)  CANCELADO
+                                   ↓
+                                 FIN ✗
+```
+
+### Máquina de Estados
+
+```python
+class EstadoTurno(Enum):
+    INICIO
+    VALIDANDO_NOMBRE
+    VALIDANDO_FECHA
+    VERIFICANDO_DISPONIBILIDAD  # COMPUERTA 1
+    REGISTRADO
+    ESPERA_REINTENTOS           # COMPUERTA 2
+    CANCELADO
+    ERROR
+```
+
+**Las transiciones son explícitas y trackeables.**
+
+---
+
+## 🚀 Cómo Usar - CLI
+
+```bash
+cd data
+python main.py
+```
+
+**Ejemplo de sesión:**
+```
+==============================================================
+         🎫 SISTEMA DE GESTIÓN DE TURNOS
+==============================================================
+
+  1️⃣  Solicitar un turno
+  2️⃣  Ver turnos disponibles
+  ...
+
+➜ Seleccione opción (1-6): 1
+
+📝 Ingrese su nombre: Juan Pérez
+📅 Ingrese la fecha del turno (DD/MM/YYYY): 20/06/2026
+ℹ️  ✓ Hay turnos disponibles para 20/06/2026 (2/5)
+
+✅ ✓ Turno registrado exitosamente
+  Nombre: Juan Pérez
+  Fecha: 20/06/2026
+```
+
+---
+
+## 📱 Escalabilidad: Telegram / WhatsApp
+
+### ✅ Es Escalable
+
+El diseño modular permite integración con bots de forma **100% escalable**:
+
+#### Arquitectura de Integración
+
+```
+┌─────────────────┐
+│  Usuario (Chat) │
+└────────┬────────┘
+         │
+    ┌────▼─────────────────────┐
+    │  Telegram/WhatsApp API   │
+    │  (python-telegram-bot)   │
+    └────┬─────────────────────┘
+         │
+    ┌────▼──────────────────────────┐
+    │ bot_telegram.py / bot_whatsapp│
+    │ (Adaptador de entrada)        │
+    └────┬──────────────────────────┘
+         │
+    ┌────▼──────────────────────────┐
+    │  services.py                 │ ← Lógica sin cambios
+    │  (TurnoService)              │
+    └────┬──────────────────────────┘
+         │
+    ┌────▼──────────────────────────┐
+    │  csv_manager.py              │ ← BD sin cambios
+    └──────────────────────────────┘
+```
+
+### Cómo Funciona
+
+1. **Telegram/WhatsApp envía mensaje** → `bot_telegram.py` recibe
+2. **Bot parsea comando** → Llama `TurnoService.verificar_disponibilidad()`
+3. **Services ejecuta lógica** → Sin saber si es CLI o Bot
+4. **Respuesta formateada** → Se devuelve al chat
+
+**Código de ejemplo (Telegram):**
+
+```python
+from services import TurnoService
+
+async def solicitar_turno_telegram(update: Update, context):
+    # Usuario ingresa: /solicitar
+    # Bot pide nombre
+    nombre = await get_user_input(update, "¿Tu nombre?")
+    
+    # Bot pide fecha
+    fecha = await get_user_input(update, "¿Fecha deseada?")
+    
+    # Usa la MISMA lógica que CLI
+    disponible, estado, mensaje = TurnoService.verificar_disponibilidad(fecha)
+    
+    # Envía mensaje al chat
+    await update.message.reply_text(mensaje)
+```
+
+### Librerías Recomendadas
+
+| Plataforma | Librería | Instalación |
+|-----------|----------|-------------|
+| **Telegram** | `python-telegram-bot` | `pip install python-telegram-bot` |
+| **WhatsApp** | `Twilio` | `pip install twilio` |
+| **Discord** | `discord.py` | `pip install discord.py` |
+
+### Ventajas de este Diseño
+
+- ✅ **Sin duplicación de código**: Lógica reutilizable
+- ✅ **Desacoplamiento**: UI independiente de servicios
+- ✅ **Testeable**: Cada módulo se prueba independientemente
+- ✅ **Mantenible**: Cambios en lógica no afectan bot
+- ✅ **Escalable**: Agregar nuevas plataformas es trivial
 
 ---
 
@@ -37,91 +216,26 @@ INICIO → Obtener Datos → COMPUERTA 1: ¿Disponible?
 
 **SÍ, está totalmente implementada.** La máquina de estados funciona **junto con el BPMN**, sin romper el flujo:
 
-### Estados Definidos
+### Transiciones Explícitas
+
+Cada función retorna un tupla: `(resultado, estado_nuevo, mensaje)`
 
 ```python
-class EstadoTurno(Enum):
-    INICIO = "inicio"
-    VALIDANDO_NOMBRE = "validando_nombre"
-    VALIDANDO_FECHA = "validando_fecha"
-    VERIFICANDO_DISPONIBILIDAD = "verificando_disponibilidad"  # COMPUERTA 1
-    REGISTRADO = "registrado"
-    ESPERA_REINTENTOS = "espera_reintentos"  # COMPUERTA 2
-    CANCELADO = "cancelado"
-    ERROR = "error"
-```
-
-### Diagrama de Transiciones
-
-```
-    ┌─ INICIO
-    │
-    ├─ VALIDANDO_NOMBRE (Entrada: nombre)
-    │
-    ├─ VALIDANDO_FECHA (Entrada: fecha)
-    │
-    ├─ VERIFICANDO_DISPONIBILIDAD (COMPUERTA 1)
-    │  ├─ ¿Disponible? SÍ
-    │  │  └─ REGISTRADO → FIN ✓
-    │  │
-    │  └─ ¿Disponible? NO
-    │     └─ ESPERA_REINTENTOS (COMPUERTA 2)
-    │        ├─ ¿Reintentar SÍ? (< 3)
-    │        │  └─ VALIDANDO_FECHA (loop)
-    │        │
-    │        └─ ¿Reintentar NO? o máx intentos
-    │           └─ CANCELADO → FIN ✗
-    │
-    └─ ERROR (excepción)
-```
-
-### Cómo Funciona
-
-1. **Cada función retorna un tupla**: `(resultado, estado_nuevo)`
-2. **El estado se actualiza constantemente** según el progreso del flujo
-3. **Las transiciones son explícitas**: se registra cada cambio de estado
-4. **BPMN + Máquina de Estados**: complementan, no compiten
-
-### Ejemplo de Transición en Código
-
-```python
-# El programa rastrear el estado
-nombre, estado_actual = obtener_nombre()  # → VALIDANDO_NOMBRE
-mostrar_transicion(EstadoTurno.INICIO, estado_actual)
-
-fecha, estado_actual = obtener_fecha()  # → VALIDANDO_FECHA
-disponible, estado_compuerta1 = turno_disponible(fecha)  # → VERIFICANDO_DISPONIBILIDAD
+# Ejemplo en main.py
+disponible, estado_compuerta, mensaje = TurnoService.verificar_disponibilidad(fecha)
 
 if disponible:
-    exitoso, estado_registro = registrar_turno(nombre, fecha)  # → REGISTRADO
+    exitoso, estado_registro, mensaje = TurnoService.registrar_turno(nombre, fecha)
 else:
     estado_actual = EstadoTurno.ESPERA_REINTENTOS
 ```
 
-### Ventajas de esta Implementación
+### Ventajas
 
 - ✅ Trazabilidad total del proceso
-- ✅ Fácil de debuguear (se ve en qué estado está)
-- ✅ Escalable: agregar nuevos estados es trivial
-- ✅ Reutilizable: la máquina de estados es independiente del BPMN
-- ✅ Documentación automática: los estados explican el flujo
-
-### Desactivar Transiciones en Consola
-
-La función `mostrar_transicion()` está desactivada por defecto. Para ver cada transición en consola, descomenta esta línea en `main.py`:
-
-```python
-# mostrar_transicion(estado_anterior, estado_nuevo)  # Descomentar para debugging
-```
-
----
-
-## 🚀 Cómo Usar
-
-```bash
-cd data
-python main.py
-```
+- ✅ Fácil debugging
+- ✅ Independencia de plataforma (CLI, Telegram, etc)
+- ✅ Documentación automática del flujo
 
 ---
 
@@ -129,20 +243,52 @@ python main.py
 
 ```
 nombre,fecha,estado
-Juan Pérez,15/06/2026,confirmado
-María García,16/06/2026,confirmado
+Juan Pérez,20/06/2026,confirmado
+María García,21/06/2026,confirmado
+Carlos López,20/06/2026,confirmado
 ```
 
 ---
 
 ## ✅ Características
 
-- Validación de nombre (2-50 caracteres)
-- Validación de fecha (no pasadas, formato DD/MM/YYYY)
-- Límite de 3 intentos para reintentos
-- Manejo de excepciones completo
-- Encoding UTF-8
-- Inicialización automática de CSV
+**Validaciones:**
+- ✓ Nombre: 2-50 caracteres
+- ✓ Fecha: DD/MM/YYYY o DD-MM-YYYY
+- ✓ No fechas pasadas
+- ✓ Máximo 5 turnos/día
+- ✓ Máximo 3 intentos de reintentos
+
+**Robustez:**
+- ✓ Manejo completo de excepciones
+- ✓ Encoding UTF-8
+- ✓ Inicialización automática de CSV
+- ✓ Mensajes claros al usuario
+
+**Arquitectura:**
+- ✓ Modularidad total (MVC)
+- ✓ Máquina de estados
+- ✓ Desacoplamiento de UI y lógica
+- ✓ Listo para escalabilidad
+
+---
+
+## 🔧 Desarrollo Futuro
+
+- [ ] Implementar opciones 3, 4 en el menú
+- [ ] Bot de Telegram
+- [ ] Bot de WhatsApp (Twilio)
+- [ ] API REST (FastAPI/Flask)
+- [ ] Frontend web (React/Vue)
+- [ ] Base de datos (SQLite/PostgreSQL)
+- [ ] Autenticación de usuarios
+- [ ] Sistema de notificaciones
+
+---
+
+## 📚 Documentación
+
+Ver `bot_telegram.py` para template de integración con Telegram.
 
 ---
 

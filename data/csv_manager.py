@@ -1,14 +1,10 @@
 # TPI- OE: Sistemas de turnos
-# Alumnos: Brisa Chirino y Gerardo Ocampo
 # Módulo: Gestor de persistencia CSV
 
 import csv
 import os
 from pathlib import Path
-
-DATOS_DIR = "data"
-ARCHIVO_TURNOS = os.path.join(DATOS_DIR, "turnos.csv")
-ENCODING = "utf-8"
+from config import DATOS_DIR, ARCHIVO_TURNOS, ENCODING
 
 def inicializar_csv():
     """Crea el archivo CSV con encabezados si no existe"""
