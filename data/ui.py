@@ -134,6 +134,52 @@ class MenuPrincipal:
         print("="*60 + "\n")
     
     @staticmethod
+    def mostrar_sincronizacion_inicial(turnos, estadisticas):
+        """Muestra sincronización con el archivo CSV al iniciar"""
+        print("\n" + "="*60)
+        print("  📊 SINCRONIZACIÓN CON BASE DE DATOS".center(60))
+        print("="*60)
+        
+        if estadisticas:
+            print(f"""
+  Total de turnos registrados: {estadisticas.get('total', 0)}
+  ✓ Confirmados: {estadisticas.get('confirmados', 0)}
+  ✗ Cancelados: {estadisticas.get('cancelados', 0)}
+        """)
+        
+        if turnos:
+            print("\n  📋 Últimos turnos registrados:")
+            for i, turno in enumerate(turnos[-5:], 1):  # Últimos 5
+                estado_emoji = "✓" if turno.get("estado") == "confirmado" else "✗"
+                print(f"     {i}. {estado_emoji} {turno.get('nombre', 'N/A')} - {turno.get('fecha', 'N/A')}")
+        
+        print("\n" + "="*60 + "\n")
+    
+    @staticmethod
+    def mostrar_resumen_antes_salir(turnos, estadisticas):
+        """Muestra resumen antes de salir"""
+        print("\n" + "="*60)
+        print("  📋 RESUMEN ANTES DE SALIR".center(60))
+        print("="*60)
+        
+        if estadisticas:
+            print(f"""
+  Total de turnos en el sistema: {estadisticas.get('total', 0)}
+  ✓ Confirmados: {estadisticas.get('confirmados', 0)}
+  ✗ Cancelados: {estadisticas.get('cancelados', 0)}
+        """)
+        
+        if turnos:
+            print("\n  📋 Todos los turnos registrados:")
+            for i, turno in enumerate(turnos, 1):
+                estado_emoji = "✓" if turno.get("estado") == "confirmado" else "✗"
+                print(f"     {i}. {estado_emoji} {turno.get('nombre', 'N/A')} - {turno.get('fecha', 'N/A')} ({turno.get('estado', 'N/A')})")
+        else:
+            print("\n  ℹ️  No hay turnos registrados aún.")
+        
+        print("\n" + "="*60 + "\n")
+    
+    @staticmethod
     def pausa():
         """Pausa para que el usuario vea el mensaje"""
         input("\nPresione ENTER para continuar...")

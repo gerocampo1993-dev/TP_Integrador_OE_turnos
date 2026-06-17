@@ -75,6 +75,11 @@ def menu_principal():
     """Loop principal del menú"""
     MenuPrincipal.mostrar_bienvenida()
     
+    # SINCRONIZACIÓN INICIAL: Cargar datos del CSV
+    turnos, _ = TurnoService.obtener_todos_turnos()
+    estadisticas, _ = TurnoService.obtener_estadisticas()
+    MenuPrincipal.mostrar_sincronizacion_inicial(turnos, estadisticas)
+    
     while True:
         MenuPrincipal.mostrar_menu_principal()
         opcion = MenuPrincipal.obtener_opcion_menu()
@@ -93,8 +98,18 @@ def menu_principal():
             MenuPrincipal.mostrar_ayuda()
             MenuPrincipal.pausa()
         elif opcion == "6":
-            print("\n👋 ¡Hasta luego!\n")
-            break
+            # OPCIÓN SALIR CON SINCRONIZACIÓN
+            turnos, _ = TurnoService.obtener_todos_turnos()
+            estadisticas, _ = TurnoService.obtener_estadisticas()
+            MenuPrincipal.mostrar_resumen_antes_salir(turnos, estadisticas)
+            
+            confirmacion = input("¿Seguro que desea salir? (si/no): ").strip().lower()
+            if confirmacion == "si":
+                print("\n✓ Todos los cambios han sido guardados en turnos.csv")
+                print("👋 ¡Hasta luego!\n")
+                break
+            else:
+                print("\n✓ Retornando al menú...\n")
 
 if __name__ == "__main__":
     try:

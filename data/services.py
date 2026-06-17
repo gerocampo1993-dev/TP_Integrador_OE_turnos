@@ -1,7 +1,7 @@
 # TPI- OE: Sistemas de turnos
 # Módulo: Servicios de negocio (lógica de turnos)
 
-from csv_manager import guardar_turno, obtener_turnos_por_fecha
+from csv_manager import guardar_turno, obtener_turnos_por_fecha, leer_turnos
 from models import EstadoTurno, Turno
 from config import MAX_TURNOS_POR_DIA
 
@@ -50,3 +50,28 @@ class TurnoService:
             return turnos, None
         except Exception as e:
             return [], str(e)
+    
+    @staticmethod
+    def obtener_todos_turnos():
+        """Obtiene TODOS los turnos del CSV (sin filtro de fecha)"""
+        try:
+            turnos = leer_turnos()
+            return turnos, None
+        except Exception as e:
+            return [], str(e)
+    
+    @staticmethod
+    def obtener_estadisticas():
+        """Obtiene estadísticas del CSV"""
+        try:
+            turnos = leer_turnos()
+            confirmados = len([t for t in turnos if t.get("estado") == "confirmado"])
+            cancelados = len([t for t in turnos if t.get("estado") == "cancelado"])
+            total = len(turnos)
+            return {
+                "total": total,
+                "confirmados": confirmados,
+                "cancelados": cancelados
+            }, None
+        except Exception as e:
+            return {}, str(e)
