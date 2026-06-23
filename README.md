@@ -5,7 +5,7 @@ Sistema de gestión de turnos con arquitectura modular, 2 compuertas BPMN y máq
 **Alumno**: Gerardo Ocampo
 
 ---
-# Ejcucuión del código:
+# Ejecución del código:
 
 Ejecutar el archivo main.py, que se localiza en la carpeta data.
 
