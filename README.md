@@ -2,7 +2,7 @@
 
 Sistema de gestión de turnos con arquitectura modular, 2 compuertas BPMN y máquina de estados. Escalable a Telegram/WhatsApp.
 
-**Alumnos**: Brisa Chirino y Gerardo Ocampo
+**Alumno**: Gerardo Ocampo
 
 ---
 
